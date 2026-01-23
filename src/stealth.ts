@@ -1,4 +1,5 @@
 import { Locator, Page } from "@playwright/test";
+import { createCursor, type Cursor } from "ghost-cursor-playwright";
 
 interface FillProps {
   field: Locator;
@@ -12,27 +13,53 @@ interface ClickProps {
 }
 
 export class Stealth {
+  private cursor!: Cursor;
+
   constructor(public page: Page) {}
 
-  fill = async ({ field, value, delay = 500 }: FillProps) => {
-    const minSliceLength = Math.max(3, Math.floor(value.length * 0.6));
-    const maxSliceLength = Math.max(4, Math.floor(value.length * 0.8));
-    const sliceLength =
-      Math.floor(Math.random() * (maxSliceLength - minSliceLength + 1)) +
-      minSliceLength;
+  private async getCursor(): Promise<Cursor> {
+    if (!this.cursor) {
+      // TypeScript sees @playwright/test.Page and ghost-cursor-playwright's playwright-core.Page
+      // as incompatible types, but they are compatible at runtime since @playwright/test
+      // re-exports playwright-core types. This is a known limitation when packages have
+      // their own playwright-core dependency.
+      // @ts-expect-error - Runtime compatible types from different package versions
+      this.cursor = await createCursor(this.page, {
+        overshootSpread: 10,
+        overshootRadius: 120,
+        debug: false,
+      });
+    }
+    return this.cursor;
+  }
 
-    const maxBackspaceCount = Math.max(
-      2,
-      Math.min(4, Math.floor(sliceLength * 0.3))
-    );
-    const backspaceCount =
-      Math.floor(Math.random() * (maxBackspaceCount - 1)) + 2;
+  fill = async ({ field, value, delay = 500 }: FillProps) => {
+    const min = Math.max(3, Math.floor(value.length * 0.6));
+    const maxLength = Math.max(4, Math.floor(value.length * 0.8));
+    const partOffset = Math.floor(Math.random() * (maxLength - min + 1));
+    const sliceLength = partOffset + min;
+
+    const estimatedBackspaceCap = Math.min(4, Math.floor(sliceLength * 0.3));
+    const maxBackspaceCount = Math.max(2, estimatedBackspaceCap);
+    const backspaceOffset = Math.floor(Math.random() * (maxBackspaceCount - 1));
+    const backspaceCount = backspaceOffset + 2;
 
     const textPart1 = value.slice(0, sliceLength);
     const textPart2 = value.slice(sliceLength - backspaceCount);
 
-    await field.hover();
-    await field.click({ delay: Math.floor(Math.random() * delay) + 700 });
+    const cursor = await this.getCursor();
+    const boundingBox = await field.boundingBox();
+    await cursor.actions.click(
+      {
+        target: boundingBox!,
+        waitBeforeClick: [300, 700],
+        waitBetweenClick: [20, 50],
+      },
+      {
+        paddingPercentage: 20,
+        waitBeforeMove: [100, 300],
+      }
+    );
 
     await field.pressSequentially(textPart1, {
       delay: Math.floor(Math.random() * delay) + 400,
@@ -52,12 +79,18 @@ export class Stealth {
   };
 
   click = async ({ element, delay }: ClickProps) => {
-    const locatorBoundingBox = await element.boundingBox();
-    const clickX = locatorBoundingBox!.x + locatorBoundingBox!.width / 2 + 10;
-    const clickY = locatorBoundingBox!.y + locatorBoundingBox!.height / 2 - 10;
-    await element.hover();
-    await this.page.mouse.click(clickX, clickY, {
-      delay: delay ?? Math.floor(Math.random() * 1000) + 1000,
-    });
+    const cursor = await this.getCursor();
+    const boundingBox = await element.boundingBox();
+    await cursor.actions.click(
+      {
+        target: boundingBox!,
+        waitBeforeClick: delay ? [delay, delay + 500] : [500, 1500],
+        waitBetweenClick: [20, 50],
+      },
+      {
+        paddingPercentage: 20,
+        waitBeforeMove: [100, 300],
+      }
+    );
   };
 }
