@@ -19,21 +19,38 @@ interface ClickProps {
   delay?: number;
 }
 
-export class Stealth {
-  private cursor!: Cursor;
-  private stealthContext!: BrowserContext;
-  private stealthBrowser!: Browser;
+type StealthOptions =
+  | {
+      page: Page;
+      baseURL?: never;
+    }
+  | {
+      baseURL: string;
+      page?: never;
+    };
 
-  constructor(public page: Page) {}
+export class Stealth {
+  private cursor?: Cursor;
+  private stealthContext?: BrowserContext;
+  private stealthBrowser?: Browser;
+  private pageContext?: Page;
+  private baseURL?: string;
+
+  constructor(options: StealthOptions) {
+    this.pageContext = options?.page;
+    this.baseURL = options?.baseURL;
+  }
 
   private async getCursor(): Promise<Cursor> {
     if (!this.cursor) {
+      // If pageContext doesn't exist but baseURL does, create the page automatically
+      const page = this.pageContext ?? (await this.page());
       // TypeScript sees @playwright/test.Page and ghost-cursor-playwright's playwright-core.Page
       // as incompatible types, but they are compatible at runtime since @playwright/test
       // re-exports playwright-core types. This is a known limitation when packages have
       // their own playwright-core dependency.
       // @ts-expect-error - Runtime compatible types from different package versions
-      this.cursor = await createCursor(this.page, {
+      this.cursor = await createCursor(page, {
         overshootSpread: 10,
         overshootRadius: 120,
         debug: false,
@@ -87,13 +104,13 @@ export class Stealth {
     });
   };
 
-  click = async ({ element, delay }: ClickProps) => {
+  click = async ({ element, delay = 500 }: ClickProps) => {
     const cursor = await this.getCursor();
     const boundingBox = await element.boundingBox();
     await cursor.actions.click(
       {
         target: boundingBox!,
-        waitBeforeClick: delay ? [delay, delay + 500] : [500, 1500],
+        waitBeforeClick: [delay, delay + 500],
         waitBetweenClick: [20, 50],
       },
       {
@@ -103,15 +120,31 @@ export class Stealth {
     );
   };
 
-  context = async (baseURL?: string): Promise<BrowserContext> => {
+  page = async () => {
+    if (!this.pageContext) {
+      await this.context();
+      this.pageContext = await this.stealthContext!.newPage();
+      this.cursor = undefined;
+    }
+    return this.pageContext;
+  };
+
+  newPage = async () => {
     if (!this.stealthContext) {
-      await this.launchContext(baseURL);
+      await this.context();
+    }
+    return this.stealthContext!.newPage();
+  };
+
+  context = async () => {
+    if (!this.stealthContext) {
+      await this.launchContext();
       await this.addInitScript();
     }
     return this.stealthContext;
   };
 
-  private launchContext = async (baseURL?: string) => {
+  private launchContext = async () => {
     this.stealthBrowser = await chromium.launch({
       args: ["--disable-blink-features=AutomationControlled"],
     });
@@ -134,13 +167,13 @@ export class Stealth {
         deviceScaleFactor: 1,
         isMobile: false,
         hasTouch: false,
-        ...(baseURL ? { baseURL } : {}),
+        ...(this.baseURL && { baseURL: this.baseURL }),
       },
     });
   };
 
-  private addInitScript = () =>
-    this.stealthContext.addInitScript(() => {
+  private addInitScript = () => {
+    this.stealthContext!.addInitScript(() => {
       Object.defineProperty(navigator, "webdriver", { get: () => false });
       Object.defineProperty(navigator, "plugins", {
         get: () => [1, 2, 3, 4, 5],
@@ -172,9 +205,20 @@ export class Stealth {
         return getParameter.call(this, parameter);
       };
     });
+  };
 
   close = async () => {
-    await this.stealthContext.close();
-    await this.stealthBrowser.close();
+    // Close the page if it was created via baseURL
+    if (this.pageContext && this.baseURL) {
+      await this.pageContext.close();
+      this.pageContext = undefined;
+    }
+    if (this.stealthContext) {
+      await this.stealthContext.close();
+    }
+    if (this.stealthBrowser) {
+      await this.stealthBrowser.close();
+    }
+    this.cursor = undefined;
   };
 }
