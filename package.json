@@ -5,6 +5,7 @@
   "keywords": [
     "playwright",
     "automation",
+    "humanized",
     "stealth",
     "human-like",
     "input",
@@ -66,5 +67,9 @@
     "node": ">=22.0.0",
     "yarn": ">=4.12.0"
   },
-  "packageManager": "yarn@4.12.0"
+  "packageManager": "yarn@4.12.0",
+  "dependencies": {
+    "fingerprint-injector": "^2.1.79",
+    "ghost-cursor-playwright": "^2.1.0"
+  }
 }
