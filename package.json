@@ -1,6 +1,6 @@
 {
   "name": "@sojanvarghese/stealth-input",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Human-like input simulation utilities for realistic browser interactions",
   "keywords": [
     "playwright",
