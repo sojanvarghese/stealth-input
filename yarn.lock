@@ -182,6 +182,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@sojanvarghese/stealth-input@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@sojanvarghese/stealth-input@workspace:."
+  dependencies:
+    "@eslint/js": "npm:^9.39.2"
+    "@playwright/test": "npm:^1.57.0"
+    "@types/node": "npm:^25.0.10"
+    "@typescript-eslint/eslint-plugin": "npm:^8.53.1"
+    "@typescript-eslint/parser": "npm:^8.53.1"
+    eslint: "npm:^9.39.2"
+    prettier: "npm:^3.8.1"
+    typescript: "npm:^5.9.3"
+    typescript-eslint: "npm:^8.53.1"
+  peerDependencies:
+    "@playwright/test": ^1.57.0
+  languageName: unknown
+  linkType: soft
+
 "@types/estree@npm:^1.0.6":
   version: 1.0.8
   resolution: "@types/estree@npm:1.0.8"
@@ -1390,24 +1408,6 @@ __metadata:
   checksum: 10c0/405f3a531cd98b013cecb355d63555dca42fd12c7bc6671738aaa9a82882ff41cdf0ef9a2b734ca4f9a760338f114c29d01d9238a65db3ccac27929bd6e6d4b2
   languageName: node
   linkType: hard
-
-"stealth-input@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "stealth-input@workspace:."
-  dependencies:
-    "@eslint/js": "npm:^9.39.2"
-    "@playwright/test": "npm:^1.57.0"
-    "@types/node": "npm:^25.0.10"
-    "@typescript-eslint/eslint-plugin": "npm:^8.53.1"
-    "@typescript-eslint/parser": "npm:^8.53.1"
-    eslint: "npm:^9.39.2"
-    prettier: "npm:^3.8.1"
-    typescript: "npm:^5.9.3"
-    typescript-eslint: "npm:^8.53.1"
-  peerDependencies:
-    "@playwright/test": ^1.57.0
-  languageName: unknown
-  linkType: soft
 
 "strip-json-comments@npm:^3.1.1":
   version: 3.1.1

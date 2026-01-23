@@ -1,29 +1,7 @@
-# stealth-input
-
-Human-like input simulation utilities for realistic browser interactions with Playwright.
-
 ## Installation
 
 ```bash
 yarn add stealth-input
-```
-
-or with npm:
-
-```bash
-npm install stealth-input
-```
-
-**Note:** This package requires `@playwright/test` as a peer dependency. Make sure you have it installed:
-
-```bash
-yarn add @playwright/test
-```
-
-or with npm:
-
-```bash
-npm install @playwright/test
 ```
 
 ## Usage
@@ -56,8 +34,6 @@ test('example test', async ({ page }) => {
   });
 });
 ```
-
-## API
 
 ### `Stealth` Class
 
@@ -94,24 +70,3 @@ await stealth.simulateClickWithDelay({
   page: page
 });
 ```
-
-## How It Works
-
-### `simulateTypingWithDelay`
-- Types a portion of the text (60-80% of the total length)
-- Simulates human-like mistakes by pressing backspace a few times
-- Completes typing the remaining text
-- Uses randomized delays throughout to mimic natural typing patterns
-
-### `simulateClickWithDelay`
-- Calculates a slight offset from the center of the element
-- Hovers over the element first
-- Clicks with a randomized delay (1000-2000ms) to simulate human hesitation
-
-## License
-
-MIT
-
-## Author
-
-Sojan Varghese
