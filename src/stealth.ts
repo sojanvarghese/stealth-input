@@ -1,5 +1,12 @@
-import { Locator, Page } from "@playwright/test";
+import {
+  Browser,
+  BrowserContext,
+  chromium,
+  Locator,
+  Page,
+} from "@playwright/test";
 import { createCursor, type Cursor } from "ghost-cursor-playwright";
+import { newInjectedContext } from "fingerprint-injector";
 
 interface FillProps {
   field: Locator;
@@ -14,6 +21,8 @@ interface ClickProps {
 
 export class Stealth {
   private cursor!: Cursor;
+  private stealthContext!: BrowserContext;
+  private stealthBrowser!: Browser;
 
   constructor(public page: Page) {}
 
@@ -92,5 +101,80 @@ export class Stealth {
         waitBeforeMove: [100, 300],
       }
     );
+  };
+
+  context = async (baseURL?: string): Promise<BrowserContext> => {
+    if (!this.stealthContext) {
+      await this.launchContext(baseURL);
+      await this.addInitScript();
+    }
+    return this.stealthContext;
+  };
+
+  private launchContext = async (baseURL?: string) => {
+    this.stealthBrowser = await chromium.launch({
+      args: ["--disable-blink-features=AutomationControlled"],
+    });
+
+    this.stealthContext = await newInjectedContext(this.stealthBrowser, {
+      fingerprintOptions: {
+        devices: ["desktop"],
+        operatingSystems: ["ios"],
+      },
+      newContextOptions: {
+        geolocation: {
+          latitude: 39.0438, // Ashburn, VA
+          longitude: -77.4874, // Ashburn, VA
+        },
+        timezoneId: "America/New_York", // Ashburn, VA timezone
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        locale: "en-US",
+        viewport: { width: 1440, height: 900 },
+        deviceScaleFactor: 1,
+        isMobile: false,
+        hasTouch: false,
+        ...(baseURL ? { baseURL } : {}),
+      },
+    });
+  };
+
+  private addInitScript = () =>
+    this.stealthContext.addInitScript(() => {
+      Object.defineProperty(navigator, "webdriver", { get: () => false });
+      Object.defineProperty(navigator, "plugins", {
+        get: () => [1, 2, 3, 4, 5],
+      });
+
+      Object.defineProperty(navigator, "mediaDevices", {
+        get: () => ({
+          enumerateDevices: () => [
+            { kind: "audioinput", label: "Microphone", deviceId: "default" },
+            { kind: "videoinput", label: "Webcam", deviceId: "default" },
+          ],
+        }),
+      });
+
+      Object.defineProperty(navigator, "languages", {
+        get: () => ["en-US", "en"],
+      });
+
+      Object.defineProperty(window, "chrome", {
+        writable: true,
+        configurable: true,
+        value: { runtime: {}, loadTimes: () => ({}), csi: () => ({}) },
+      });
+
+      const getParameter = WebGLRenderingContext.prototype.getParameter;
+      WebGLRenderingContext.prototype.getParameter = function (parameter) {
+        if (parameter === 37445) return "Intel Inc."; // UNMASKED_VENDOR_WEBGL
+        if (parameter === 37446) return "Intel Iris OpenGL Engine"; // UNMASKED_RENDERER_WEBGL
+        return getParameter.call(this, parameter);
+      };
+    });
+
+  close = async () => {
+    await this.stealthContext.close();
+    await this.stealthBrowser.close();
   };
 }
