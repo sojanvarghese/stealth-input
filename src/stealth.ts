@@ -1,9 +1,12 @@
 import {
   Browser,
   BrowserContext,
-  chromium,
   Locator,
   Page,
+  BrowserType,
+  chromium,
+  firefox,
+  webkit,
 } from "@playwright/test";
 import { createCursor, type Cursor } from "ghost-cursor-playwright";
 import { newInjectedContext } from "fingerprint-injector";
@@ -19,26 +22,47 @@ interface ClickProps {
   delay?: number;
 }
 
-type StealthOptions =
-  | {
-      page: Page;
-      baseURL?: never;
-    }
-  | {
-      baseURL: string;
-      page?: never;
-    };
+type BaseOptions = {
+  browser?: BrowserType;
+};
+
+type StealthOptions = BaseOptions &
+  (
+    | {
+        page: Page;
+        baseURL?: never;
+      }
+    | {
+        baseURL: string;
+        page?: never;
+      }
+  );
+
+const getBrowserFromConfig = (): BrowserType => {
+  const projectName = process.env.PLAYWRIGHT_PROJECT || "chromium";
+
+  switch (projectName) {
+    case "webkit":
+      return webkit;
+    case "firefox":
+      return firefox;
+    default:
+      return chromium;
+  }
+};
 
 export class Stealth {
   private cursor?: Cursor;
   private stealthContext?: BrowserContext;
   private stealthBrowser?: Browser;
   private pageContext?: Page;
+  private browser: BrowserType;
   private baseURL?: string;
 
   constructor(options: StealthOptions) {
     this.pageContext = options?.page;
     this.baseURL = options?.baseURL;
+    this.browser = options?.browser ?? getBrowserFromConfig();
   }
 
   private async getCursor(): Promise<Cursor> {
@@ -145,7 +169,7 @@ export class Stealth {
   };
 
   private launchContext = async () => {
-    this.stealthBrowser = await chromium.launch({
+    this.stealthBrowser = await this.browser.launch({
       args: ["--disable-blink-features=AutomationControlled"],
     });
 
@@ -167,6 +191,7 @@ export class Stealth {
         deviceScaleFactor: 1,
         isMobile: false,
         hasTouch: false,
+        storageState: { cookies: [], origins: [] },
         ...(this.baseURL && { baseURL: this.baseURL }),
       },
     });
