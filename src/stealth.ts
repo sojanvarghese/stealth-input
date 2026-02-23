@@ -154,23 +154,28 @@ export class Stealth {
   };
 
   newPage = async () => {
-    if (!this.stealthContext) {
-      await this.context();
-    }
+    if (!this.stealthContext) await this.context();
     return this.stealthContext!.newPage();
   };
 
   context = async () => {
     if (!this.stealthContext) {
       await this.launchContext();
-      await this.addInitScript();
+      this.addInitScript();
     }
     return this.stealthContext;
   };
 
   private launchContext = async () => {
     this.stealthBrowser = await this.browser.launch({
-      args: ["--disable-blink-features=AutomationControlled"],
+      args: [
+        "--disable-blink-features=AutomationControlled",
+        "--disable-dev-shm-usage",
+        "--disable-extensions",
+        "--disable-features=TranslateUI",
+        "--disable-default-apps",
+        "--js-flags=--max-old-space-size=6144",
+      ],
     });
 
     this.stealthContext = await newInjectedContext(this.stealthBrowser, {
@@ -185,9 +190,10 @@ export class Stealth {
         },
         timezoneId: "America/New_York", // Ashburn, VA timezone
         userAgent:
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         locale: "en-US",
-        viewport: { width: 1440, height: 900 },
+        viewport: { width: 1280, height: 800 },
+        ignoreHTTPSErrors: true,
         deviceScaleFactor: 1,
         isMobile: false,
         hasTouch: false,
